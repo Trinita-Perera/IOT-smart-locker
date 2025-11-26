@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Box Management System</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--success);
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .card-icon {
+            font-size: 1.5rem;
+            color: var(--secondary);
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-open {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .status-closed {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .status-idle {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .status-waiting {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .info-label {
+            font-weight: 500;
+        }
+        
+        .info-value {
+            font-weight: 600;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .rfid-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        
+        .rfid-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .rfid-status {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .rfid-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .rfid-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+        
+        .rfid-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .rfid-item:last-child {
+            border-bottom: none;
+        }
+        
+        .rfid-uid {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        .delete-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background-color 0.2s;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .logs-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .log-entry {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+        
+        .log-time {
+            color: #7f8c8d;
+            font-size: 0.8rem;
+        }
+        
+        .log-message {
+            margin-top: 5px;
+        }
+        
+        .gauge {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        
+        .gauge-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #eee;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gauge-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--secondary);
+            transition: height 1s ease;
+        }
+        
+        .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .oled-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        
+        .oled-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .oled-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: var(--success);
+        }
+        
+        .notification.error {
+            background: var(--danger);
+        }
+        
+        .notification.info {
+            background: var(--secondary);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .status-indicator {
+                margin-top: 10px;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .rfid-controls {
+                flex-direction: column;
+            }
+            
+            .oled-controls {
+                flex-direction: column;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>Smart Box Management System</h1>
+                    <p class="subtitle">Monitor and control your delivery box remotely</p>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>ONLINE</span>
+                </div>
+            </div>
+        </header>
+        
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Box Status</div>
+                    <div class="card-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Lid Status:</span>
+                    <span class="info-value status-badge status-closed" id="lidStatus">CLOSED</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Access:</span>
+                    <span class="info-value" id="lastAccess">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Auto Close:</span>
+                    <span class="info-value">50 seconds</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Content Level</div>
+                    <div class="card-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-bg">
+                        <div class="gauge-fill" id="levelFill" style="height: 0%;"></div>
+                    </div>
+                    <div class="gauge-value" id="levelValue">EMPTY</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Weight Measurement</div>
+                    <div class="card-icon">
+                        <i class="fas fa-weight-hanging"></i>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Current Weight:</span>
+                    <span class="info-value" id="weightValue">0.00 kg</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Calibration:</span>
+                    <span class="info-value">-7050.0</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">RFID System</div>
+                    <div class="card-icon">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Mode:</span>
+                    <span class="info-value status-badge status-idle" id="rfidMode">IDLE</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Authorized Tags:</span>
+                    <span class="info-value" id="authorizedTags">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Scanned:</span>
+                    <span class="info-value" id="lastScanned">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="toggleLid">
+                <i class="fas fa-door-open"></i> Toggle Lid
+            </button>
+            <button class="btn btn-warning" id="calibrateScale">
+                <i class="fas fa-balance-scale"></i> Calibrate Scale
+            </button>
+            <button class="btn btn-danger" id="emergencyClose">
+                <i class="fas fa-times-circle"></i> Emergency Close
+            </button>
+        </div>
+        
+        <div class="rfid-section">
+            <h2>RFID Card Management</h2>
+            
+            <div class="rfid-controls">
+                <button class="btn btn-success" id="startRFIDTap">
+                    <i class="fas fa-plus-circle"></i> Add New Card
+                </button>
+                <button class="btn btn-primary" id="saveRFID">
+                    <i class="fas fa-save"></i> Bind Captured Card
+                </button>
+            </div>
+            
+            <div class="rfid-status">
+                <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value" id="rfidStatusText">Idle</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Captured Card:</span>
+                    <span class="info-value" id="uidDisplay">None</span>
+                </div>
+            </div>
+            
+            <h3>Authorized RFID Cards</h3>
+            <div class="rfid-list" id="rfidList">
+                <div class="empty-state">
+                    <i class="fas fa-id-card"></i>
+                    <p>No RFID cards registered yet</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="oled-section">
+            <h2>OLED Display Message</h2>
+            <p>Send a custom message to display on the box OLED screen for 5 seconds</p>
+            <div class="oled-controls">
+                <input type="text" class="oled-input" id="oledInput" placeholder="Your custom message...">
+                <button class="btn btn-primary" id="sendOLEDMessage">
+                    <i class="fas fa-paper-plane"></i> Send to Box
+                </button>
+            </div>
+        </div>
+        
+        <div class="logs-section">
+            <h2>System Logs</h2>
+            <div id="logEntries">
+                <div class="log-entry">
+                    <div class="log-time" id="currentTime">Just now</div>
+                    <div class="log-message">System initialized and ready</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcCP_VwkVOCNwIaxYdGtjcVTxIn8Qlhb4",
+            authDomain: "box2-fc0d0.firebaseapp.com",
+            databaseURL: "https://box2-fc0d0-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "box2-fc0d0"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // DOM Elements
+        const lidStatusElement = document.getElementById('lidStatus');
+        const lastAccessElement = document.getElementById('lastAccess');
+        const levelElement = document.getElementById('levelValue');
+        const levelFillElement = document.getElementById('levelFill');
+        const weightElement = document.getElementById('weightValue');
+        const rfidModeElement = document.getElementById('rfidMode');
+        const authorizedTagsElement = document.getElementById('authorizedTags');
+        const lastScannedElement = document.getElementById('lastScanned');
+        const rfidListElement = document.getElementById('rfidList');
+        const logEntriesElement = document.getElementById('logEntries');
+        const rfidStatusElement = document.getElementById('rfidStatusText');
+        const uidDisplayElement = document.getElementById('uidDisplay');
+        const notificationElement = document.getElementById('notification');
+
+        // Box data
+        let boxData = {
+            lidStatus: "CLOSED",
+            lastAccess: "-",
+            level: "EMPTY",
+            weight: 0.00,
+            rfidMode: "IDLE",
+            authorizedTags: 0,
+            lastScannedUID: "-"
+        };
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            notificationElement.textContent = message;
+            notificationElement.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notificationElement.classList.remove('show');
+            }, 3000);
+        }
+
+        // Update UI with current data
+        function updateUI() {
+            // Update lid status
+            lidStatusElement.textContent = boxData.lidStatus;
+            lidStatusElement.className = `info-value status-badge status-${boxData.lidStatus.toLowerCase()}`;
+            
+            // Update other elements
+            lastAccessElement.textContent = boxData.lastAccess;
+            levelElement.textContent = boxData.level;
+            weightElement.textContent = `${boxData.weight.toFixed(2)} kg`;
+            rfidModeElement.textContent = boxData.rfidMode;
+            rfidModeElement.className = `info-value status-badge status-${boxData.rfidMode.toLowerCase()}`;
+            authorizedTagsElement.textContent = boxData.authorizedTags;
+            lastScannedElement.textContent = boxData.lastScannedUID;
+            
+            // Update level gauge
+            let fillHeight = 0;
+            if (boxData.level === "100%") fillHeight = 100;
+            else if (boxData.level === "50%") fillHeight = 50;
+            levelFillElement.style.height = `${fillHeight}%`;
+        }
+        
+        // Add log entry
+        function addLogEntry(message) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <div class="log-time">${timeString}</div>
+                <div class="log-message">${message}</div>
+            `;
+            
+            logEntriesElement.prepend(logEntry);
+            
+            // Keep only the last 10 log entries
+            if (logEntriesElement.children.length > 10) {
+                logEntriesElement.removeChild(logEntriesElement.lastChild);
+            }
+        }
+
+        // ======================== LID CONTROL FUNCTIONS ==========================
+        function toggleLid() {
+            const currentStatus = boxData.lidStatus;
+            const newStatus = currentStatus === "CLOSED" ? "OPEN" : "CLOSED";
+            const who = "WEB ADMIN";
+            
+            // Send command to Firebase
+            db.ref("box/control").set({
+                action: "toggle_lid",
+                who: who,
+                timestamp: Date.now()
+            }).then(() => {
+                addLogEntry(`Lid toggle requested by ${who}`);
+                showNotification(`Lid ${newStatus.toLowerCase()} command sent`, "info");
+            }).catch(error => {
+                console.error("Error sending lid command:", error);
+                showNotification("Error sending lid command", "error");
+            });
+        }
+
+        function emergencyClose() {
+            // Send emergency close command to Firebase
+            db.ref("box/control").set({
+                action: "emergency_close",
+                who: "WEB ADMIN",
+                timestamp: Date.now()
+            }).then(() => {
+                addLogEntry("Emergency close activated");
+                showNotification("Emergency close command sent", "warning");
+            }).catch(error => {
+                console.error("Error sending emergency close:", error);
+                showNotification("Error sending emergency close", "error");
+            });
+        }
+
+        // ======================== START ADD RFID ==========================
+        function startRFIDTap() {
+            rfidStatusElement.textContent = "Waiting for card tap...";
+            rfidStatusElement.className = "info-value status-waiting";
+            db.ref("rfids/mode").set("WAITING").then(() => {
+                addLogEntry("RFID enrollment mode activated - waiting for card tap");
+                showNotification("RFID registration mode activated. Tap your card now.", "info");
+            }).catch(error => {
+                console.error("Error setting RFID mode:", error);
+                showNotification("Error activating RFID mode", "error");
+            });
+        }
+
+        // ======================== WATCH FOR CAPTURED RFID ==========================
+        db.ref("rfids/captured_uid").on("value", snapshot => {
+            if(snapshot.exists() && snapshot.val() !== "") {
+                const uid = snapshot.val();
+                uidDisplayElement.textContent = uid;
+                rfidStatusElement.textContent = "Card detected ✅";
+                rfidStatusElement.className = "info-value status-success";
+                boxData.lastScannedUID = uid;
+                updateUI();
+                addLogEntry(`RFID card detected: ${uid}`);
+                showNotification(`RFID card detected: ${uid}`, "success");
+            }
+        });
+
+        // ======================== SAVE CAPTURED CARD ==========================
+        function saveUID() {
+            const uid = uidDisplayElement.textContent;
+
+            if (uid === "None" || !uid) {
+                showNotification("Please tap a card first!", "error");
+                return;
+            }
+
+            // Save to Firebase
+            db.ref("rfids/list").push(uid).then(() => {
+                // Clear captured UID
+                return db.ref("rfids/captured_uid").set("");
+            }).then(() => {
+                // Reset UI
+                uidDisplayElement.textContent = "None";
+                rfidStatusElement.textContent = "Saved successfully ✅";
+                rfidStatusElement.className = "info-value status-success";
+                
+                // Reset mode
+                return db.ref("rfids/mode").set("IDLE");
+            }).then(() => {
+                showNotification(`RFID card ${uid} saved successfully!`, "success");
+                addLogEntry(`RFID card saved: ${uid}`);
+            }).catch(error => {
+                console.error("Error saving RFID:", error);
+                showNotification("Error saving RFID card", "error");
+            });
+        }
+
+        // ======================== LIST REGISTERED CARDS ==========================
+        db.ref("rfids/list").on("value", snapshot => {
+            rfidListElement.innerHTML = "";
+
+            if (!snapshot.exists()) {
+                rfidListElement.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-id-card"></i>
+                        <p>No RFID cards registered yet</p>
+                    </div>
+                `;
+                boxData.authorizedTags = 0;
+                updateUI();
+                return;
+            }
+
+            let count = 0;
+            snapshot.forEach(card => {
+                count++;
+                const item = document.createElement('div');
+                item.className = 'rfid-item';
+                item.innerHTML = `
+                    <span class="rfid-uid">${card.val()}</span> 
+                    <button class="delete-btn" onclick="deleteRFID('${card.key}')">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                `;
+                rfidListElement.appendChild(item);
+            });
+            
+            boxData.authorizedTags = count;
+            updateUI();
+        });
+
+        // ======================== DELETE RFID ==========================
+        function deleteRFID(key) {
+            if(confirm("Are you sure you want to remove this RFID card?")) {
+                db.ref("rfids/list/" + key).remove()
+                    .then(() => {
+                        showNotification("RFID card removed successfully", "info");
+                        addLogEntry("RFID card removed from database");
+                    })
+                    .catch(error => {
+                        console.error("Error deleting RFID:", error);
+                        showNotification("Error removing RFID card", "error");
+                    });
+            }
+        }
+
+        // ======================== SEND OLED MESSAGE ==========================
+        function sendOLEDMessage() {
+            const msg = document.getElementById("oledInput").value;
+
+            if (msg.trim() === "") {
+                showNotification("Please enter a message", "error");
+                return;
+            }
+
+            db.ref("box/oled_message").set(msg).then(() => {
+                return db.ref("box/oled_show").set(true);
+            }).then(() => {
+                showNotification("Message sent to box ✅", "success");
+                addLogEntry(`OLED message sent: "${msg}"`);
+                document.getElementById("oledInput").value = "";
+            }).catch(error => {
+                console.error("Error sending OLED message:", error);
+                showNotification("Error sending message", "error");
+            });
+        }
+
+        // ======================== CALIBRATE SCALE ==========================
+        function calibrateScale() {
+            db.ref("box/control").set({
+                action: "calibrate_scale",
+                who: "WEB ADMIN",
+                timestamp: Date.now()
+            }).then(() => {
+                addLogEntry("Scale calibration requested");
+                showNotification("Scale calibration started", "info");
+            }).catch(error => {
+                console.error("Error calibrating scale:", error);
+                showNotification("Error calibrating scale", "error");
+            });
+        }
+
+        // ======================== FIREBASE LISTENERS ==========================
+        db.ref("rfids/mode").on("value", snapshot => {
+            if (snapshot.exists()) {
+                boxData.rfidMode = snapshot.val();
+                updateUI();
+            }
+        });
+
+        db.ref("box/lid_status").on("value", snapshot => {
+            if (snapshot.exists()) {
+                boxData.lidStatus = snapshot.val();
+                updateUI();
+                addLogEntry(`Lid status changed to: ${boxData.lidStatus}`);
+            }
+        });
+
+        db.ref("box/last_access").on("value", snapshot => {
+            if (snapshot.exists()) {
+                boxData.lastAccess = snapshot.val();
+                updateUI();
+            }
+        });
+
+        db.ref("box/level").on("value", snapshot => {
+            if (snapshot.exists()) {
+                boxData.level = snapshot.val();
+                updateUI();
+            }
+        });
+
+        db.ref("box/weight").on("value", snapshot => {
+            if (snapshot.exists()) {
+                boxData.weight = snapshot.val();
+                updateUI();
+            }
+        });
+
+        // Button event handlers
+        document.getElementById('toggleLid').addEventListener('click', toggleLid);
+        document.getElementById('calibrateScale').addEventListener('click', calibrateScale);
+        document.getElementById('emergencyClose').addEventListener('click', emergencyClose);
+        document.getElementById('startRFIDTap').addEventListener('click', startRFIDTap);
+        document.getElementById('saveRFID').addEventListener('click', saveUID);
+        document.getElementById('sendOLEDMessage').addEventListener('click', sendOLEDMessage);
+
+        // Initialize
+        updateUI();
+        addLogEntry("System connected to Firebase");
+        showNotification("Smart Box Management System Connected", "success");
+
+        // Update current time in initial log
+        document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
+    </script>
+</body>
+</html>
